@@ -1,16 +1,12 @@
 /* packet-gryphon.c
  *
- * Updated routines for Gryphon protocol packet dissection
- * By Mark C. <markc@dgtech.com>
- * Copyright (C) 2018 DG Technologies, Inc. (Dearborn Group, Inc.) USA
- *
  * Routines for OPRA protocol packet disassembly
- * By J. Bomer based on the gryphon decoder
- * By Steve Limkemann <stevelim@dgtech.com>
+ * By J. Bomer starting from the gryphon decoder
+ * by Steve Limkemann <stevelim@dgtech.com>
  *
  * Wireshark - Network traffic analyzer
  * By Gerald Combs <gerald@wireshark.org>
- * Copyright 1998 Gerald Combs
+ * Copyright 1998 Gerald CombsMSG_CAT_K_TYPES
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
@@ -31,6 +27,7 @@ void proto_reg_handoff_opra(void);
 static int dissect_opra(tvbuff_t *, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_q(tvbuff_t *, int, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_k(tvbuff_t *, int, packet_info *, proto_tree *, void*);
+static int dissect_opra_message_category_a(tvbuff_t *, int, packet_info *, proto_tree *, void*);
 static int dissect_opra_quote_appendage(tvbuff_t *, int, packet_info *, proto_tree *, void*, uint32_t);
 
 /*port ranges for OPRA UDP dissemination*/
@@ -86,7 +83,7 @@ static int hf_opra_msg_cat_k_bid_size;
 static int hf_opra_msg_cat_k_offer_price;
 static int hf_opra_msg_cat_k_offer_size;
 
-/*fields for bid / offer appendages*/
+/*bid/offer appendages*/
 static int hf_opra_msg_bid_appendage_participant_id;
 static int hf_opra_msg_bid_appendage_denominator_code;
 static int hf_opra_msg_bid_appendage_price;
@@ -109,7 +106,7 @@ static int hf_opra_msg_cat_a_premium_price;
 static int hf_opra_msg_cat_a_trade_identifier;
 static int hf_opra_msg_cat_a_reserved2;
 
-/*friendly display names for enum or char fields*/
+/*friendly display names for simple enum fields*/
 static const value_string hf_opra_data_feed_indicators[] = {
     {'O', "OPRA"},
     { 0, NULL}
@@ -147,7 +144,6 @@ static const value_string hf_opra_participant_ids[] = {
     { 0, NULL}
 };
 
-/*categories with their descriptions*/
 static const value_string hf_opra_message_categories[] = {
     {'a', "Equity and Index Last Sale"},
     {'d', "Open Interest"},
@@ -160,82 +156,90 @@ static const value_string hf_opra_message_categories[] = {
     { 0, NULL}
 };
 
-/*for each message category, there is a list of message types with associated descriptions*/
+/*Decoding of message type, these depend on message category.
+  Some types have both a short and long description, combine those into one string for display.*/
+#define MESSAGE_TYPES_DISPLAY_STRING(w, x, y) {w, x " : " y},
+
 /*short quote*/
+#define MSG_CAT_Q_TYPES(D) \
+    D(' ', "", "Regular Trading") \
+    D('F', "", "Non-Firm Quote") \
+    D('I', "", "Indicative Value") \
+    D('R', "", "Rotation") \
+    D('T', "", "Trading Halted") \
+    D('A', "", "Eligible for Automatic Execution") \
+    D('B', "", "Bid Contains Customer Trading Interest") \
+    D('O', "", "Offer Contains Customer Trading Interest") \
+    D('C', "", "Both Bid and Offer Contain Customer Trading Interest") \
+    D('X', "", "Offer Side of Quote Not Firm; Bid Side Firm") \
+    D('Y', "", "Bid Side of Quote Not Firm; Offer Side Firm")
+
 static const value_string hf_opra_msg_cat_q_types[] = {
-    {' ', "Regular Trading"},
-    {'F', "Non-Firm Quote"},
-    {'I', "Indicative Value"},
-    {'R', "Rotation"},
-    {'T', "Trading Halted"},
-    {'A', "Eligible for Automatic Execution"},
-    {'B', "Bid Contains Customer Trading Interest"},
-    {'O', "Offer Contains Customer Trading Interest"},
-    {'C', "Both Bid and Offer Contain Customer Trading Interest"},
-    {'X', "Offer Side of Quote Not Firm; Bid Side Firm"},
-    {'Y', "Bid Side of Quote Not Firm; Offer Side Firm"},
+    MSG_CAT_Q_TYPES(MESSAGE_TYPES_DISPLAY_STRING)
     { 0, NULL}
 };
 
 /*long quote, currently same as short quote*/
+#define MSG_CAT_K_TYPES(D) \
+    D(' ', "", "Regular Trading") \
+    D('F', "", "Non-Firm Quote") \
+    D('I', "", "Indicative Value") \
+    D('R', "", "Rotation") \
+    D('T', "", "Trading Halted") \
+    D('A', "", "Eligible for Automatic Execution") \
+    D('B', "", "Bid Contains Customer Trading Interest") \
+    D('O', "", "Offer Contains Customer Trading Interest") \
+    D('C', "", "Both Bid and Offer Contain Customer Trading Interest") \
+    D('X', "", "Offer Side of Quote Not Firm; Bid Side Firm") \
+    D('Y', "", "Bid Side of Quote Not Firm; Offer Side Firm")
+
 static const value_string hf_opra_msg_cat_k_types[] = {
-    {' ', "Regular Trading"},
-    {'F', "Non-Firm Quote"},
-    {'I', "Indicative Value"},
-    {'R', "Rotation"},
-    {'T', "Trading Halted"},
-    {'A', "Eligible for Automatic Execution"},
-    {'B', "Bid Contains Customer Trading Interest"},
-    {'O', "Offer Contains Customer Trading Interest"},
-    {'C', "Both Bid and Offer Contain Customer Trading Interest"},
-    {'X', "Offer Side of Quote Not Firm; Bid Side Firm"},
-    {'Y', "Bid Side of Quote Not Firm; Offer Side Firm"},
+    MSG_CAT_K_TYPES(MESSAGE_TYPES_DISPLAY_STRING)
     { 0, NULL}
 };
 
 /*last sale*/
-static const value_string hf_opra_msg_cat_a_types[] = {
-    {'A', "CANC"},
-    {'B', "OSEQ"},
-    {'C', "CNCL"},
-    {'D', "LATE"},
-    {'E', "CNCO"},
-    {'F', "OPEN"},
-    {'G', "CNOL"},
-    {'H', "OPNL"},
-    {'I', "AUTO"},
-    {'J', "REOP"},
-    {'S', "ISOI"},
-    {'a', "SLAN"},
-    {'b', "SLAI"},
-    {'c', "SLCN"},
-    {'d', "SLCI"},
-    {'e', "SLFT"},
-    {'f', "MLET"},
-    {'g', "MLAT"},
-    {'h', "MLCT"},
-    {'i', "MLFT"},
-    {'j', "MESL"},
-    {'k', "TLAT"},
-    {'l', "MASL"},
-    {'m', "MFSL"},
-    {'n', "TLET"},
-    {'o', "TLCT"},
-    {'p', "TLFT"},
-    {'q', "TESL"},
-    {'r', "TASL"},
-    {'s', "TFSL"},
-    {'t', "CBMO"},
-    {'u', "MCTP"},
-    {'v', "EXHT"},
+#define MSG_CAT_A_TYPES(D) \
+    D('A', "CANC", "Previously reported (except last or opening) now to be cancelled.") \
+    D('B', "OSEQ", "Reported late and out of sequence.") \
+    D('C', "CNCL", "Last reported and is now cancelled.") \
+    D('D', "LATE", "Reported late, but in correct sequence.") \
+    D('E', "CNCO", "First report of day, now to be cancelled.") \
+    D('F', "OPEN", "Late report of opening trade, and is out of sequence.") \
+    D('G', "CNOL", "Only report for day, now to be cancelled.") \
+    D('H', "OPNL", "Late report of opening trade, but in correct sequence.") \
+    D('I', "AUTO", "Executed electronically.") \
+    D('J', "REOP", "Reopening after halt.") \
+    D('S', "ISOI", "Execution of Intermarket Sweep Order.") \
+    D('a', "SLAN", "Single Leg Auction, non ISO.") \
+    D('b', "SLAI", "Single Leg Auction, ISO.") \
+    D('c', "SLCN", "Single Leg Cross, non ISO.") \
+    D('d', "SLCI", "Single Leg Cross, ISO.") \
+    D('e', "SLFT", "Single Leg Floor Trade.") \
+    D('f', "MLET", "Multi Leg Auto-Electronic Trade.") \
+    D('g', "MLAT", "Multi Leg Auction.") \
+    D('h', "MLCT", "Multi Leg Cross.") \
+    D('i', "MLFT", "Multi Leg Floor Trade.") \
+    D('j', "MESL", "Multi Leg Auto-Electronic Trade against single leg(s).") \
+    D('k', "TLAT", "Stock Options Auction.") \
+    D('l', "MASL", "Multi Leg Auction against single leg(s).") \
+    D('m', "MFSL", "Multi Leg Floor Trade against single leg(s).") \
+    D('n', "TLET", "Stock Options Auto-Electronic Trade.") \
+    D('o', "TLCT", "Stock Options Cross.") \
+    D('p', "TLFT", "Stock Options Floor Trade.") \
+    D('q', "TESL", "Stock Options Auto-Electronic Trade against single leg(s).") \
+    D('r', "TASL", "Stock Options Auction against single leg(s).") \
+    D('s', "TFSL", "Stock Options Floor Trade against single leg(s).") \
+    D('t', "CBMO", "Multi Leg Floor Trade of Proprietary Products.") \
+    D('u', "MCTP", "Multilateral Compression Trade of Proprietary Products.") \
+    D('v', "EXHT", "Extended Hours Trade.")
+
+static const value_string hf_opra_msg_cat_a_types_long[] = {
+    MSG_CAT_A_TYPES(MESSAGE_TYPES_DISPLAY_STRING)
     { 0, NULL}
 };
 
-/*Quote appendage Message Indicator values*/
-static const char *hf_opra_msg_indicator_best_offer_appendages _U_ = "CGKO";
-static const char *hf_opra_msg_indicator_best_bid_appendages _U_ = "MNPO";
-
-/*map of category to permitted message types*/
+/*associate category with permitted message types*/
 typedef struct _hf_opra_msg_cat_to_types_detail {
     char category;
     const value_string *message_types;
@@ -244,6 +248,7 @@ typedef struct _hf_opra_msg_cat_to_types_detail {
 static const hf_opra_msg_cat_to_types_detail hf_opra_msg_cat_to_types[] = {
     {.category = 'k', .message_types = hf_opra_msg_cat_k_types},
     {'q', hf_opra_msg_cat_q_types},
+    {'a', hf_opra_msg_cat_a_types_long},
     { 0, NULL}
 };
 
@@ -263,39 +268,55 @@ static const hf_opra_msg_cat_to_types_detail *FindTypesForCategory(char category
     return NULL;
 }
 
+/*get appropriate description for message type, depending on message category*/
 static const char* GetMessageTypeDescription(uint32_t message_category, uint8_t message_type)
 {
     /*get the map detail for this category*/
     const hf_opra_msg_cat_to_types_detail *pMessageTypes = FindTypesForCategory(message_category);
     if (NULL == pMessageTypes)
-        return NULL;
+        return "cat not found";
 
     /*look at each types entry until we find one that matches our type, or return "not found"*/
-    return val_to_str(message_type, pMessageTypes->message_types, "not found");
+    return val_to_str(message_type, pMessageTypes->message_types, "type not found");
 }
 
-/*fixed point denominator codes used by the spec*/
+/*these Message Indicator values indicate the presence of quote appendages*/
+static const char *hf_opra_msg_indicator_best_offer_appendages _U_ = "CGKO";
+static const char *hf_opra_msg_indicator_best_bid_appendages _U_ = "MNPO";
+
+/*fixed point denominator codes used by the spec.  Various uses for these.*/
+#define DENOM_CODE_LIST(D) \
+    D('A', _1dps, "(%d) %d.%01d", "1 DPS") \
+    D('B', _2dps, "(%d) %d.%01d", "2 DPS") \
+    D('C', _3dps, "(%d) %d.%01d", "3 DPS") \
+    D('D', _4dps, "(%d) %d.%01d", "4 DPS") \
+    D('E', _5dps, "(%d) %d.%01d", "5 DPS") \
+    D('F', _6dps, "(%d) %d.%01d", "6 DPS") \
+    D('G', _7dps, "(%d) %d.%01d", "7 DPS") \
+    D('H', _8dps, "(%d) %d.%01d", "8 DPS") \
+    D('I', _0dps, "(%d) %d", "0 DPS")
+
+/*define the denom codes in an enum*/
+#define DENOM_CODE_ENUM_ENTRY(w, x, y, z) x = w,
 typedef enum _denom_code {
-    _1dps = 'A',
-    _2dps = 'B',
-    _3dps = 'C',
-    _4dps = 'D',
-    _5dps = 'E',
-    _6dps = 'F',
-    _7dps = 'G',
-    _8dps = 'H',
-    _0dps = 'I',
+    DENOM_CODE_LIST(DENOM_CODE_ENUM_ENTRY)
 } denom_code;
 
-static const denom_code denom_code_1dps _U_ = _1dps;
-static const denom_code denom_code_2dps _U_ = _2dps;
-static const denom_code denom_code_3dps _U_ = _3dps;
-static const denom_code denom_code_4dps _U_ = _4dps;
-static const denom_code denom_code_5dps _U_ = _5dps;
-static const denom_code denom_code_6dps _U_ = _6dps;
-static const denom_code denom_code_7dps _U_ = _7dps;
-static const denom_code denom_code_8dps _U_ = _8dps;
-static const denom_code denom_code_0dps _U_ = _0dps;
+/*value_string array for display of the denom code*/
+#define DENOM_CODE_DISPLAY_STRING_ENTRY(w, x, y, z) { x, z },
+static const value_string hf_opra_denominator_codes[] = {
+    DENOM_CODE_LIST(DENOM_CODE_DISPLAY_STRING_ENTRY)
+    {0, NULL}
+};
+
+/*value_string array for formatting prices depending on denom code*/
+#define DENOM_CODE_FORMAT_STRING_ENTRY(w, x, y, z) { x, y },
+static const value_string denom_code_format_strings[] = {
+    DENOM_CODE_LIST(DENOM_CODE_FORMAT_STRING_ENTRY)
+    {0, NULL}
+};
+
+//TODO - check upcasting of char into uint32_t if I'm doing that anywhere - char might be signed on some systems.
 
 /*Price formatting utility functions*/
 static void DisplayPrice(char *pBuff, uint32_t value, denom_code code)
@@ -303,38 +324,40 @@ static void DisplayPrice(char *pBuff, uint32_t value, denom_code code)
     if (NULL == pBuff)
         return;
 
+    const char *fmt = val_to_str(code, denom_code_format_strings, "bad denom_code");
+
     /*make use of the ascending ascii values for denom code, 0dps is the exception*/
     uint32_t divisor;
-    if (denom_code_0dps == code) {divisor = 1;}
-        else {divisor = pow(10, ((uint8_t) (code - denom_code_1dps) + 1));}
+    if (_0dps == code) {divisor = 1;}
+        else {divisor = pow(10, ((uint8_t) (code - _1dps) + 1));}
 
-    const char *fmt = "%d.%d (%d)";
     const uint32_t whole_part = value / divisor;
     const uint32_t fraction_part = value % divisor;
 
-    int size = snprintf(pBuff, ITEM_LABEL_LENGTH, fmt, whole_part, fraction_part, value);
+    int size = snprintf(pBuff, ITEM_LABEL_LENGTH, fmt, value, whole_part, fraction_part);
 
     if (size > ITEM_LABEL_LENGTH) {snprintf(pBuff, ITEM_LABEL_LENGTH, "xxxx");}
 
     return;
 }
 
+/*Helper functions for use with BASE_CUSTOM fields*/
 static void DisplayShortQuoteStrikePrice(char *pBuff, uint32_t value)
 {
     /*per spec is implied 1 decimal place*/
-    return DisplayPrice(pBuff, value, denom_code_1dps);
+    return DisplayPrice(pBuff, value, _1dps);
 }
 
 static void DisplayShortQuotePrice(char *pBuff, uint32_t value)
 {
     /*per spec is implied 2 decimal places*/
-    return DisplayPrice(pBuff, value, denom_code_2dps);
+    return DisplayPrice(pBuff, value, _2dps);
 }
 
 static void DisplayShortQuoteSize(char * pBuff, uint32_t value)
 {
     /*per spec is implied whole number*/
-    return DisplayPrice(pBuff, value, denom_code_0dps);
+    return DisplayPrice(pBuff, value, _0dps);
 }
 
 /*registration*/
@@ -528,7 +551,7 @@ void proto_register_opra(void)
             &hf_opra_msg_cat_k_strike_price_denominator_code,
             {   "Strike Price Denominator Code", "opra.msg_cat_k.strike_price_denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
@@ -542,7 +565,7 @@ void proto_register_opra(void)
             &hf_opra_msg_cat_k_premium_price_denominator_code,
             {   "Premium Price Denominator Code", "opra.msg_cat_k.premium_price_denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
@@ -585,7 +608,7 @@ void proto_register_opra(void)
             &hf_opra_msg_bid_appendage_denominator_code,
             {   "Bid Appendage Denominator Code", "opra.msg_bid_appendage.denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
@@ -613,7 +636,7 @@ void proto_register_opra(void)
             &hf_opra_msg_offer_appendage_denominator_code,
             {   "Offer Appendage Denominator Code", "opra.msg_offer_appendage.denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
@@ -649,19 +672,19 @@ void proto_register_opra(void)
             &hf_opra_msg_cat_a_strike_price_denominator_code,
             {   "Strike Price Denominator Code", "opra.msg_cat_a.strike_price_denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
             &hf_opra_msg_cat_a_strike_price,
             {   "Strike Price", "opra.msg_cat_a.strike_price",
-                FT_UINT32, BASE_DEC,
+                FT_STRING, BASE_NONE,
                 NULL, 0x0,
                 NULL, HFILL }
         },
         {
             &hf_opra_msg_cat_a_volume,
-            {   "Strike Price", "opra.msg_cat_a.volume",
+            {   "Volume", "opra.msg_cat_a.volume",
                 FT_UINT32, BASE_DEC,
                 NULL, 0x0,
                 NULL, HFILL }
@@ -670,13 +693,13 @@ void proto_register_opra(void)
             &hf_opra_msg_cat_a_premium_price_denominator_code,
             {   "Premium Price Denominator Code", "opra.msg_cat_a.premium_price_denominator_code",
                 FT_CHAR, BASE_HEX,
-                NULL, 0x0,
+                VALS(hf_opra_denominator_codes), 0x0,
                 NULL, HFILL }
         },
         {
             &hf_opra_msg_cat_a_premium_price,
-            {   "Bid Price", "opra.msg_cat_a.premium_price",
-                FT_UINT32, BASE_DEC,
+            {   "Premium Price", "opra.msg_cat_a.premium_price",
+                FT_STRING, BASE_NONE,
                 NULL, 0x0,
                 NULL, HFILL }
         },
@@ -695,7 +718,6 @@ void proto_register_opra(void)
                 NULL, HFILL }
         },
     };
-
 
     /*protocol subtree array*/
     static int *ett[] = {
@@ -824,6 +846,10 @@ dissect_opra(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void* data)
                 offset = dissect_opra_quote_appendage(tvb, offset, pinfo, message_tree, data, message_indicator);
                 break;
             }
+            case 'a':{
+                offset = dissect_opra_message_category_a(tvb, offset, pinfo, message_tree, data);
+                break;
+            }
             default:{
                 /*unrecognized message category, have to skip the remainder of the block as we don't know the length of the message so can't recover*/
                 return tvb_captured_length(tvb);
@@ -911,6 +937,59 @@ dissect_opra_message_category_k(tvbuff_t *tvb, int offset, packet_info *pinfo _U
 
     len = 4;
     proto_tree_add_item(tree, hf_opra_msg_cat_k_offer_size, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    /*return the new offset*/
+    return offset;
+}
+
+static int
+dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+{
+    int len = 5;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_reserved1, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 3;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    uint32_t denominator;
+    proto_tree_add_item_ret_uint(tree, hf_opra_msg_cat_a_strike_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN, &denominator);
+    offset += len;
+
+    len = 4;
+    uint32_t price = tvb_get_uint32(tvb, offset, ENC_BIG_ENDIAN);
+    char tmp[ITEM_LABEL_LENGTH];
+    DisplayPrice(tmp, price, denominator);
+    proto_tree_add_string(tree, hf_opra_msg_cat_a_strike_price, tvb, offset, len, tmp);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_volume, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item_ret_uint(tree, hf_opra_msg_cat_a_premium_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN, &denominator);
+    offset += len;
+
+    len = 4;
+    price = tvb_get_uint32(tvb, offset, ENC_BIG_ENDIAN);
+    DisplayPrice(tmp, price, denominator);
+    proto_tree_add_string(tree, hf_opra_msg_cat_a_premium_price, tvb, offset, len, tmp);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_trade_identifier, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_a_reserved2, tvb, offset, len, ENC_BIG_ENDIAN);
     offset += len;
 
     /*return the new offset*/
