@@ -390,13 +390,13 @@ static const char *hf_opra_msg_indicator_best_bid_appendages _U_ = "MNOP";
 /*fixed point denominator codes used by the spec.  Various uses for these.*/
 #define OPRA_DENOMINATOR_CODE_LIST(D) \
     D('A', _1dps, "(%d) %d.%01d", "1 DPS") \
-    D('B', _2dps, "(%d) %d.%01d", "2 DPS") \
-    D('C', _3dps, "(%d) %d.%01d", "3 DPS") \
-    D('D', _4dps, "(%d) %d.%01d", "4 DPS") \
-    D('E', _5dps, "(%d) %d.%01d", "5 DPS") \
-    D('F', _6dps, "(%d) %d.%01d", "6 DPS") \
-    D('G', _7dps, "(%d) %d.%01d", "7 DPS") \
-    D('H', _8dps, "(%d) %d.%01d", "8 DPS") \
+    D('B', _2dps, "(%d) %d.%02d", "2 DPS") \
+    D('C', _3dps, "(%d) %d.%03d", "3 DPS") \
+    D('D', _4dps, "(%d) %d.%04d", "4 DPS") \
+    D('E', _5dps, "(%d) %d.%05d", "5 DPS") \
+    D('F', _6dps, "(%d) %d.%06d", "6 DPS") \
+    D('G', _7dps, "(%d) %d.%07d", "7 DPS") \
+    D('H', _8dps, "(%d) %d.%08d", "8 DPS") \
     D('I', _0dps, "(%d) %d", "0 DPS")
 
 /*define the denom codes in an enum*/
@@ -595,184 +595,31 @@ void proto_register_opra(void)
                 NULL, 0x0,
                 NULL, HFILL }
         },
-        /*Short Quote Message*/
+
+
+
+
+
+
+        /*administrative*/
         {
-            &hf_opra_msg_cat_q_security_symbol,
-            {   "Security Symbol", "opra.msg_cat_q.security_symbol",
-                FT_STRING, BASE_NONE,
+            &hf_opra_msg_cat_C_data_length,
+            {   "Data Length", "opra.msg_cat_C.data_length",
+                FT_UINT16, BASE_DEC,
                 NULL, 0x0,
                 NULL, HFILL }
         },
         {
-            &hf_opra_msg_cat_q_expiration_block,
-            {   "Expiration Block", "opra.msg_cat_q.expiration_block",
-                FT_BYTES, BASE_NONE,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_q_strike_price,
-            {   "Strike Price", "opra.msg_cat_q.strike_price",
-                FT_UINT16, BASE_CUSTOM,
-                &DisplayShortQuoteStrikePrice, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_q_bid_price,
-            {   "Bid Price", "opra.msg_cat_q.bid_price",
-                FT_UINT16, BASE_CUSTOM,
-                &DisplayShortQuotePrice, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_q_bid_size,
-            {   "Bid Size", "opra.msg_cat_q.bid_size",
-                FT_UINT16, BASE_CUSTOM,
-                &DisplayShortQuoteSize, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_q_offer_price,
-            {   "Offer Price", "opra.msg_cat_q.offer_price",
-                FT_UINT16, BASE_CUSTOM,
-                &DisplayShortQuotePrice, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_q_offer_size,
-            {   "Offer Size", "opra.msg_cat_q.offer_size",
-                FT_UINT16, BASE_CUSTOM,
-                &DisplayShortQuoteSize, 0x0,
-                NULL, HFILL }
-        },
-        /*Long Quote Message*/
-        {
-            &hf_opra_msg_cat_k_security_symbol,
-            {   "Security Symbol", "opra.msg_cat_k.security_symbol",
-                FT_STRING, BASE_NONE,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_reserved,
-            {   "Reserved", "opra.msg_cat_k.reserved",
-                FT_BYTES, BASE_NONE,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_expiration_block,
-            {   "Expiration Block", "opra.msg_cat_k.expiration_block",
-                FT_BYTES, BASE_NONE,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_strike_price_denominator_code,
-            {   "Strike Price Denominator Code", "opra.msg_cat_k.strike_price_denominator_code",
-                FT_CHAR, BASE_HEX,
-                VALS(hf_opra_denominator_codes), 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_strike_price,
-            {   "Strike Price", "opra.msg_cat_k.strike_price",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_premium_price_denominator_code,
-            {   "Premium Price Denominator Code", "opra.msg_cat_k.premium_price_denominator_code",
-                FT_CHAR, BASE_HEX,
-                VALS(hf_opra_denominator_codes), 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_bid_price,
-            {   "Bid Price", "opra.msg_cat_k.bid_price",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_bid_size,
-            {   "Bid Size", "opra.msg_cat_k.bid_size",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_offer_price,
-            {   "Offer Price", "opra.msg_cat_k.offer_price",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_cat_k_offer_size,
-            {   "Offer Size", "opra.msg_cat_q.offer_size",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        /*Quote Appendages*/
-        {
-            &hf_opra_msg_bid_appendage_participant_id,
-            {   "Bid Appendage Participant ID", "opra.msg_bid_appendage.participant_id",
+            /*The combination of FT_CHAR, BASE_HEX works to display the character instead of a hex code.  Dissect using ENC_BIG_ENDIAN for consistency.*/
+            &hf_opra_msg_cat_C_data,
+            {   "Data", "opra.msg_cat_C.data",
                 FT_CHAR, BASE_HEX,
                 NULL, 0x0,
                 NULL, HFILL }
         },
-        {
-            &hf_opra_msg_bid_appendage_denominator_code,
-            {   "Bid Appendage Denominator Code", "opra.msg_bid_appendage.denominator_code",
-                FT_CHAR, BASE_HEX,
-                VALS(hf_opra_denominator_codes), 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_bid_appendage_price,
-            {   "Bid Appendage Price", "opra.msg_bid_appendage.price",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_bid_appendage_size,
-            {   "Bid Appendage Size", "opra.msg_bid_appendage.size",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_offer_appendage_participant_id,
-            {   "Offer Appendage Participant Id", "opra.msg_offer_appendage.participant_id",
-                FT_CHAR, BASE_HEX,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_offer_appendage_denominator_code,
-            {   "Offer Appendage Denominator Code", "opra.msg_offer_appendage.denominator_code",
-                FT_CHAR, BASE_HEX,
-                VALS(hf_opra_denominator_codes), 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_offer_appendage_price,
-            {   "Offer Appendage Price", "opra.msg_offer_appendage.price",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
-        {
-            &hf_opra_msg_offer_appendage_size,
-            {   "Offer Appendage Size", "opra.msg_offer_appendage.size",
-                FT_UINT32, BASE_DEC,
-                NULL, 0x0,
-                NULL, HFILL }
-        },
+
+        /*control message has no fields, only header info*/
+
         /*last sale*/
         {
             &hf_opra_msg_cat_a_security_symbol,
@@ -844,6 +691,7 @@ void proto_register_opra(void)
                 NULL, 0x0,
                 NULL, HFILL }
         },
+
         /*open interest*/
         {
             &hf_opra_msg_cat_d_security_symbol,
@@ -887,23 +735,192 @@ void proto_register_opra(void)
                 NULL, 0x0,
                 NULL, HFILL }
         },
-        /*administrative*/
+
+
+
+
+
+
+
+        /*Long Quote Message*/
         {
-            &hf_opra_msg_cat_C_data_length,
-            {   "Data Length", "opra.msg_cat_C.data_length",
-                FT_UINT16, BASE_DEC,
+            &hf_opra_msg_cat_k_security_symbol,
+            {   "Security Symbol", "opra.msg_cat_k.security_symbol",
+                FT_STRING, BASE_NONE,
                 NULL, 0x0,
                 NULL, HFILL }
         },
         {
-            /*The combination of FT_CHAR, BASE_HEX works to display the character instead of a hex code.  Dissect using ENC_BIG_ENDIAN for consistency.*/
-            &hf_opra_msg_cat_C_data,
-            {   "Data", "opra.msg_cat_C.data",
+            &hf_opra_msg_cat_k_reserved,
+            {   "Reserved", "opra.msg_cat_k.reserved",
+                FT_BYTES, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_expiration_block,
+            {   "Expiration Block", "opra.msg_cat_k.expiration_block",
+                FT_BYTES, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_strike_price_denominator_code,
+            {   "Strike Price Denominator Code", "opra.msg_cat_k.strike_price_denominator_code",
+                FT_CHAR, BASE_HEX,
+                VALS(hf_opra_denominator_codes), 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_strike_price,
+            {   "Strike Price", "opra.msg_cat_k.strike_price",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_premium_price_denominator_code,
+            {   "Premium Price Denominator Code", "opra.msg_cat_k.premium_price_denominator_code",
+                FT_CHAR, BASE_HEX,
+                VALS(hf_opra_denominator_codes), 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_bid_price,
+            {   "Bid Price", "opra.msg_cat_k.bid_price",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_bid_size,
+            {   "Bid Size", "opra.msg_cat_k.bid_size",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_offer_price,
+            {   "Offer Price", "opra.msg_cat_k.offer_price",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_k_offer_size,
+            {   "Offer Size", "opra.msg_cat_q.offer_size",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+
+        /*Short Quote Message*/
+        {
+            &hf_opra_msg_cat_q_security_symbol,
+            {   "Security Symbol", "opra.msg_cat_q.security_symbol",
+                FT_STRING, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_expiration_block,
+            {   "Expiration Block", "opra.msg_cat_q.expiration_block",
+                FT_BYTES, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_strike_price,
+            {   "Strike Price", "opra.msg_cat_q.strike_price",
+                FT_UINT16, BASE_CUSTOM,
+                &DisplayShortQuoteStrikePrice, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_bid_price,
+            {   "Bid Price", "opra.msg_cat_q.bid_price",
+                FT_UINT16, BASE_CUSTOM,
+                &DisplayShortQuotePrice, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_bid_size,
+            {   "Bid Size", "opra.msg_cat_q.bid_size",
+                FT_UINT16, BASE_CUSTOM,
+                &DisplayShortQuoteSize, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_offer_price,
+            {   "Offer Price", "opra.msg_cat_q.offer_price",
+                FT_UINT16, BASE_CUSTOM,
+                &DisplayShortQuotePrice, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_q_offer_size,
+            {   "Offer Size", "opra.msg_cat_q.offer_size",
+                FT_UINT16, BASE_CUSTOM,
+                &DisplayShortQuoteSize, 0x0,
+                NULL, HFILL }
+        },
+        /*Quote Appendages*/
+        {
+            &hf_opra_msg_bid_appendage_participant_id,
+            {   "Bid Appendage Participant ID", "opra.msg_bid_appendage.participant_id",
                 FT_CHAR, BASE_HEX,
                 NULL, 0x0,
                 NULL, HFILL }
         },
-        /*no control message fields, only header*/
+        {
+            &hf_opra_msg_bid_appendage_denominator_code,
+            {   "Bid Appendage Denominator Code", "opra.msg_bid_appendage.denominator_code",
+                FT_CHAR, BASE_HEX,
+                VALS(hf_opra_denominator_codes), 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_bid_appendage_price,
+            {   "Bid Appendage Price", "opra.msg_bid_appendage.price",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_bid_appendage_size,
+            {   "Bid Appendage Size", "opra.msg_bid_appendage.size",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_offer_appendage_participant_id,
+            {   "Offer Appendage Participant Id", "opra.msg_offer_appendage.participant_id",
+                FT_CHAR, BASE_HEX,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_offer_appendage_denominator_code,
+            {   "Offer Appendage Denominator Code", "opra.msg_offer_appendage.denominator_code",
+                FT_CHAR, BASE_HEX,
+                VALS(hf_opra_denominator_codes), 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_offer_appendage_price,
+            {   "Offer Appendage Price", "opra.msg_offer_appendage.price",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_offer_appendage_size,
+            {   "Offer Appendage Size", "opra.msg_offer_appendage.size",
+                FT_UINT32, BASE_DEC,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
     };
 
     /*protocol subtree array*/
@@ -1043,14 +1060,12 @@ static int dissect_opra(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
 
         switch(message_category)
         {
-            case 'q':{
-                offset = dissect_opra_message_category_q(tvb, offset, pinfo, message_tree, data);
-                offset = dissect_opra_quote_appendage(tvb, offset, pinfo, message_tree, data, message_indicator);
+            case 'C':{
+                offset = dissect_opra_message_category_C(tvb, offset, pinfo, message_tree, data);
                 break;
             }
-            case 'k':{
-                offset = dissect_opra_message_category_k(tvb, offset, pinfo, message_tree, data);
-                offset = dissect_opra_quote_appendage(tvb, offset, pinfo, message_tree, data, message_indicator);
+            case 'H':{
+                /*nothing further to do*/
                 break;
             }
             case 'a':{
@@ -1061,12 +1076,14 @@ static int dissect_opra(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
                 offset = dissect_opra_message_category_d(tvb, offset, pinfo, message_tree, data);
                 break;
             }
-            case 'C':{
-                offset = dissect_opra_message_category_C(tvb, offset, pinfo, message_tree, data);
+            case 'k':{
+                offset = dissect_opra_message_category_k(tvb, offset, pinfo, message_tree, data);
+                offset = dissect_opra_quote_appendage(tvb, offset, pinfo, message_tree, data, message_indicator);
                 break;
             }
-            case 'H':{
-                /*nothing further to do*/
+            case 'q':{
+                offset = dissect_opra_message_category_q(tvb, offset, pinfo, message_tree, data);
+                offset = dissect_opra_quote_appendage(tvb, offset, pinfo, message_tree, data, message_indicator);
                 break;
             }
             default:{
@@ -1093,90 +1110,25 @@ static int dissect_opra(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
     return offset;
 }
 
-static int
-dissect_opra_message_category_q(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+static int dissect_opra_message_category_C(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
-    int len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    int len = 2;
+    uint32_t data_length;
+    proto_tree_add_item_ret_uint(tree, hf_opra_msg_cat_C_data_length, tvb, offset, len, ENC_BIG_ENDIAN, &data_length);
     offset += len;
 
-    len = 3;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 2;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 2;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_bid_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 2;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_bid_size, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 2;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_offer_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 2;
-    proto_tree_add_item(tree, hf_opra_msg_cat_q_offer_size, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
+    if (0 < data_length){
+        len = (int) data_length;
+        proto_tree_add_item(tree, hf_opra_msg_cat_C_data_length, tvb, offset, len, ENC_BIG_ENDIAN);
+        offset += len;
+    }
 
     /*return the new offset*/
     return offset;
 }
 
-static int
-dissect_opra_message_category_k(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
-{
-    int len = 5;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
-    offset += len;
 
-    len = 1;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_reserved, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 3;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 1;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_strike_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 1;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_premium_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_bid_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_bid_size, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_offer_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_k_offer_size, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    /*return the new offset*/
-    return offset;
-}
-
-static int
-dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+static int dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
     int len = 5;
     proto_tree_add_item(tree, hf_opra_msg_cat_a_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
@@ -1229,8 +1181,117 @@ dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_info *pinfo _U
     return offset;
 }
 
-static int
-dissect_opra_quote_appendage(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void* data _U_, uint32_t message_indicator)
+static int dissect_opra_message_category_d(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+{
+    int len = 5;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_reserved, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 3;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_strike_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_d_volume, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    /*return the new offset*/
+    return offset;
+}
+
+static int dissect_opra_message_category_k(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+{
+    int len = 5;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_reserved, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 3;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_strike_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_premium_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_bid_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_bid_size, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_offer_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_k_offer_size, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    /*return the new offset*/
+    return offset;
+}
+
+static int dissect_opra_message_category_q(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+{
+    int len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    offset += len;
+
+    len = 3;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 2;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 2;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_bid_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 2;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_bid_size, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 2;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_offer_price, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 2;
+    proto_tree_add_item(tree, hf_opra_msg_cat_q_offer_size, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    /*return the new offset*/
+    return offset;
+}
+
+static int dissect_opra_quote_appendage(tvbuff_t *tvb _U_, int offset _U_, packet_info *pinfo _U_, proto_tree *tree _U_, void* data _U_, uint32_t message_indicator)
 {
     /*check for bid and offer appendages*/
     bool bid_appendage = false;
@@ -1274,55 +1335,6 @@ dissect_opra_quote_appendage(tvbuff_t *tvb _U_, int offset _U_, packet_info *pin
 
         len  = 4;
         proto_tree_add_item(tree, hf_opra_msg_offer_appendage_size, tvb, offset, len, ENC_BIG_ENDIAN);
-        offset += len;
-    }
-
-    /*return the new offset*/
-    return offset;
-}
-
-static int
-dissect_opra_message_category_d(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
-{
-    int len = 5;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
-    offset += len;
-
-    len = 1;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_reserved, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 3;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_expiration_block, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 1;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_strike_price_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_strike_price, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    len = 4;
-    proto_tree_add_item(tree, hf_opra_msg_cat_d_volume, tvb, offset, len, ENC_BIG_ENDIAN);
-    offset += len;
-
-    /*return the new offset*/
-    return offset;
-}
-
-static int
-dissect_opra_message_category_C(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
-{
-    int len = 2;
-    uint32_t data_length;
-    proto_tree_add_item_ret_uint(tree, hf_opra_msg_cat_C_data_length, tvb, offset, len, ENC_BIG_ENDIAN, &data_length);
-    offset += len;
-
-    if (0 < data_length){
-        len = (int) data_length;
-        proto_tree_add_item(tree, hf_opra_msg_cat_C_data_length, tvb, offset, len, ENC_BIG_ENDIAN);
         offset += len;
     }
 
