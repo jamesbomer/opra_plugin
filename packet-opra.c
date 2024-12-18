@@ -1,14 +1,14 @@
-/* packet-gryphon.c
+/* packet-opra.c
  *
  * Routines for OPRA protocol packet disassembly
  * By J. Bomer starting from the gryphon decoder
- * by Steve Limkemann <stevelim@dgtech.com>
+ * by Steve Limkemann, Olivier Abad and Mark Ciechanowski
  *
  * Wireshark - Network traffic analyzer
  * By Gerald Combs <gerald@wireshark.org>
  * Copyright 1998 Gerald Combs
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2J O End of Day.0-or-later
  *
  */
 
@@ -27,6 +27,7 @@ void proto_reg_handoff_opra(void);
 
 static int dissect_opra(tvbuff_t *, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_C(tvbuff_t *, int, packet_info *, proto_tree *, void*);
+static int dissect_opra_message_category_Y(tvbuff_t *, int, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_a(tvbuff_t *, int, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_d(tvbuff_t *, int, packet_info *, proto_tree *, void*);
 static int dissect_opra_message_category_k(tvbuff_t *, int, packet_info *, proto_tree *, void*);
@@ -45,7 +46,7 @@ static int proto_opra;
 static int ett_opra;
 static int ett_opra_message_header;
 
-/*expert fields*/
+/*expert fields for highlighting malformed packets / protocol errors*/
 static expert_field hf_opra_exp_block_length_error;
 
 /*block header and trailer fields*/
@@ -73,7 +74,14 @@ static int hf_opra_msg_hdr_participant_reference_number;
 static int hf_opra_msg_cat_C_data_length;
 static int hf_opra_msg_cat_C_data;
 
-/*control messages are message header only.*/
+/*control messages are header only, no fields.*/
+
+/*underlying value*/
+static int hf_opra_msg_cat_Y_security_symbol;
+static int hf_opra_msg_cat_Y_reserved1;
+static int hf_opra_msg_cat_Y_index_value_denominator_code;
+static int hf_opra_msg_cat_Y_index_value;
+static int hf_opra_msg_cat_Y_reserved2;
 
 /*last sale*/
 static int hf_opra_msg_cat_a_security_symbol;
@@ -596,11 +604,6 @@ void proto_register_opra(void)
                 NULL, HFILL }
         },
 
-
-
-
-
-
         /*administrative*/
         {
             &hf_opra_msg_cat_C_data_length,
@@ -619,6 +622,43 @@ void proto_register_opra(void)
         },
 
         /*control message has no fields, only header info*/
+
+        /*underlying value*/
+        {
+            &hf_opra_msg_cat_Y_security_symbol,
+            {   "Security Symbol", "opra.msg_cat_Y.security_symbol",
+                FT_STRING, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_Y_reserved1,
+            {   "Reserved", "opra.msg_cat_Y.reserved1",
+                FT_BYTES, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_Y_index_value_denominator_code,
+            {   "Index Value Denominator Code", "opra.msg_cat_Y.index_value_denominator_code",
+                FT_CHAR, BASE_HEX,
+                VALS(hf_opra_denominator_codes), 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_Y_index_value,
+            {   "Index Value", "opra.msg_cat_Y.index_value",
+                FT_STRING, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
+        {
+            &hf_opra_msg_cat_Y_reserved2,
+            {   "Reserved", "opra.msg_cat_Y.reserved2",
+                FT_BYTES, BASE_NONE,
+                NULL, 0x0,
+                NULL, HFILL }
+        },
 
         /*last sale*/
         {
@@ -1068,6 +1108,10 @@ static int dissect_opra(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, voi
                 /*nothing further to do*/
                 break;
             }
+            case 'Y':{
+                offset = dissect_opra_message_category_Y(tvb, offset, pinfo, message_tree, data);
+                break;
+            }
             case 'a':{
                 offset = dissect_opra_message_category_a(tvb, offset, pinfo, message_tree, data);
                 break;
@@ -1127,6 +1171,35 @@ static int dissect_opra_message_category_C(tvbuff_t *tvb, int offset, packet_inf
     return offset;
 }
 
+static int dissect_opra_message_category_Y(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
+{
+    int len = 5;
+    proto_tree_add_item(tree, hf_opra_msg_cat_Y_security_symbol, tvb, offset, len, ENC_NA | ENC_ASCII);
+    offset += len;
+
+    len = 1;
+    proto_tree_add_item(tree, hf_opra_msg_cat_Y_reserved1, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    len = 1;
+    uint32_t denominator;
+    proto_tree_add_item_ret_uint(tree, hf_opra_msg_cat_Y_index_value_denominator_code, tvb, offset, len, ENC_BIG_ENDIAN, &denominator);
+    offset += len;
+
+    len = 4;
+    uint32_t price = tvb_get_uint32(tvb, offset, ENC_BIG_ENDIAN);
+
+    static char tmp_buffer[ITEM_LABEL_LENGTH];
+    DisplayPrice(tmp_buffer, price, denominator);
+    proto_tree_add_string(tree, hf_opra_msg_cat_Y_index_value, tvb, offset, len, tmp_buffer);
+    offset += len;
+
+    len = 4;
+    proto_tree_add_item(tree, hf_opra_msg_cat_Y_reserved2, tvb, offset, len, ENC_BIG_ENDIAN);
+    offset += len;
+
+    return offset;
+}
 
 static int dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_info *pinfo _U_, proto_tree *tree, void* data _U_)
 {
@@ -1173,7 +1246,7 @@ static int dissect_opra_message_category_a(tvbuff_t *tvb, int offset, packet_inf
     proto_tree_add_item(tree, hf_opra_msg_cat_a_trade_identifier, tvb, offset, len, ENC_BIG_ENDIAN);
     offset += len;
 
-    len = 1;
+    len = 4;
     proto_tree_add_item(tree, hf_opra_msg_cat_a_reserved2, tvb, offset, len, ENC_BIG_ENDIAN);
     offset += len;
 
